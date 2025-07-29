@@ -6,3 +6,5 @@ sentence-transformers
 faiss-cpu
 PyMuPDF            # fast PDF parser
 tqdm
+pdfplumber         
+bert-extractive-summarizer

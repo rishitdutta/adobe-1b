@@ -18,20 +18,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-# ---------- Python requirements ----------
+# ---------- Python requirements (cached layer) ----------
 COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r requirements.txt
 
-# ---------- copy project code so the loader can import -----------------------
+# ---------- copy project code for model loading -----------------------
 COPY models.py .
 
-# ---------- preload all HF models into $HF_HOME (offline later) -------------
-RUN python - <<'PY'
-from models import load_models
-load_models()               # downloads flan-t5-small, MiniLM, bge-reranker
-print("✅  All models cached into the image.")
-PY
+# ---------- preload all HF models (cached layer) -------------
+# This layer is only rebuilt if models.py or requirements.txt changes.
+RUN python -c "from models import load_models; load_models(); print('✅ All models cached.')"
 
 
 ###############################################################################
@@ -57,7 +54,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=builder /usr/local/lib/python3.10/site-packages /usr/local/lib/python3.10/site-packages
 COPY --from=builder /opt/hf_cache /opt/hf_cache
 
-# Copy the rest of your project code
+# Copy the rest of your project code (changes to these won't trigger a redownload)
 COPY . /app
 
 # Default command: execute the pipeline
